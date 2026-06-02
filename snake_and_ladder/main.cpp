@@ -1,5 +1,6 @@
 #include "include/player.hpp"
 #include "include/board.hpp"
+#include "include/game.hpp"
 #include <iostream>
 
 int main()
@@ -17,8 +18,12 @@ int main()
     Player p4("Nike");
     Player p5("Rike");
 
-    Board b(100, snakes, ladders, p1, p2, p3, p4, p5);
-    b.playGame();
+    Board b(100, snakes, ladders);
+    Dice d;
+
+    Game g(&b, &d, &p1, &p2, &p3, &p4, &p5);
+
+    g.playGame();
 
     return 0;
 }

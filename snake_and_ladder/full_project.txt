@@ -1,58 +1,113 @@
 ==> include/board.hpp <==
 #pragma once
-#include "player.hpp"
-#include <vector>
 #include <unordered_map>
-#include <random>
-#include <iostream>
+#include <vector>
+
+class Game;
 
 class Board
 {
 private:
     int lim;
-    bool ongoing;
-    std::vector<Player> players;
     std::unordered_map<int, int> ladders, snakes;
 
-    std::random_device rd;
-    std::mt19937 gen;
-    std::uniform_int_distribution<int> dice;
-
-    bool move(Player &p);
-
-    void endGame();
-
 public:
+    Game *currGame;
+
     Board(int _end, std::vector<std::vector<int>> &_snakes, std::vector<std::vector<int>> &_ladders);
-
-    template <typename... AllPlayers>
-    Board(int _lim, std::vector<std::vector<int>> &_snakes, std::vector<std::vector<int>> &_ladders, AllPlayers... allPlayers) : lim(_lim), ongoing(false), gen(rd()), dice(1, 6)
-    {
-        addPlayers(allPlayers...);
-        addSnakes(_snakes);
-        addLadders(_ladders);
-    }
-
-    void addPlayers() {};
-
-    template <typename... Rest>
-    void addPlayers(const Player &p1, Rest... rest)
-    {
-        if (ongoing)
-        {
-            std::cout << "\nA Game is still ongoing! Come Later.\n\n";
-            return;
-        }
-
-        players.push_back(p1);
-        addPlayers(rest...);
-    }
 
     void addSnakes(std::vector<std::vector<int>> &_snakes);
 
     void addLadders(std::vector<std::vector<int>> &_ladders);
 
+    bool isLadderThere(int &pos)
+    {
+        return ladders.count(pos);
+    }
+
+    bool isSnakeThere(int &pos)
+    {
+        return snakes.count(pos);
+    }
+
+    int getSnakeTail(int &pos)
+    {
+        return snakes[pos];
+    }
+
+    int getLadderTop(int &pos)
+    {
+        return ladders[pos];
+    }
+
+    int &getLim()
+    {
+        return lim;
+    }
+};
+==> include/dice.hpp <==
+#pragma once
+#include <random>
+
+class Dice
+{
+private:
+    std::random_device rd;
+    std::mt19937 gen;
+    std::uniform_int_distribution<int> distr;
+
+public:
+    Dice() : gen(rd()), distr(1, 6) {};
+
+    int rollDice()
+    {
+        return distr(gen);
+    }
+};
+==> include/game.hpp <==
+#pragma once
+#include "dice.hpp"
+#include "player.hpp"
+#include "board.hpp"
+#include <vector>
+
+class Game
+{
+private:
+    bool ongoing;
+    std::vector<Player *> players;
+    Board *board;
+    Dice *dice;
+
+    bool move(Player *&p);
+
+    void endGame();
+
+public:
+    Game(Board *_board, Dice *_dice);
+
+    template <typename... AllPlayers>
+    Game(Board *_board, Dice *_dice, AllPlayers... allPlayers) : board{_board}, dice{_dice}
+    {
+        addPlayers(allPlayers...);
+        board->currGame = this;
+    }
+
+    void addPlayers() {}
+
+    template <typename... Rest>
+    void addPlayers(Player *&p1, Rest... rest)
+    {
+        players.push_back(p1);
+        addPlayers(rest...);
+    }
+
     void playGame();
+
+    bool isOngoing()
+    {
+        return ongoing;
+    }
 };
 ==> include/player.hpp <==
 #pragma once
@@ -75,14 +130,13 @@ public:
 };
 ==> src/board.cpp <==
 #include "../include/board.hpp"
-#include "../include/player.hpp"
+#include "../include/game.hpp"
 #include <algorithm>
 #include <iostream>
-#include <format>
 
 void Board::addSnakes(std::vector<std::vector<int>> &_snakes)
 {
-    if (ongoing)
+    if (currGame->isOngoing())
     {
         std::cout << "\nA Game is still ongoing! Come Later.\n\n";
         return;
@@ -99,7 +153,7 @@ void Board::addSnakes(std::vector<std::vector<int>> &_snakes)
 
 void Board::addLadders(std::vector<std::vector<int>> &_ladders)
 {
-    if (ongoing)
+    if (currGame->isOngoing())
     {
         std::cout << "\nA Game is still ongoing! Come Later.\n\n";
         return;
@@ -114,38 +168,50 @@ void Board::addLadders(std::vector<std::vector<int>> &_ladders)
     }
 }
 
-Board::Board(int _lim, std::vector<std::vector<int>> &_snakes, std::vector<std::vector<int>> &_ladders) : lim(_lim), ongoing(false), gen(rd()), dice(1, 6)
+Board::Board(int _lim, std::vector<std::vector<int>> &_snakes, std::vector<std::vector<int>> &_ladders) : lim(_lim)
 {
     addSnakes(_snakes);
     addLadders(_ladders);
 }
 
-bool Board::move(Player &p)
+==> src/game.cpp <==
+#include "../include/game.hpp"
+#include <format>
+#include <algorithm>
+#include <iostream>
+
+Game::Game(Board *_board, Dice *_dice) : board{_board}, dice{_dice}
 {
-    int oldPos = p.getPos();
-    int newPos = p.getPos() + dice(gen);
-    if (newPos <= lim)
-    {
-        if (ladders.count(newPos))
-        {
-            std::cout << std::format("({} climbed a ladder!)", p.getName());
-            newPos = ladders[newPos];
-        }
-        else if (snakes.count(newPos))
-        {
-            std::cout << std::format("({} found a snake!)", p.getName());
-            newPos = snakes[newPos];
-        }
-
-        p.setPos(newPos);
-
-        std::cout << std::format("Moved {} from {} to {}", p.getName(), oldPos, newPos) << std::endl;
-    }
-
-    return p.getPos() == lim;
+    board->currGame = this;
 }
 
-void Board::playGame()
+bool Game::move(Player *&p)
+{
+    int m = dice->rollDice();
+    int oldPos = p->getPos();
+    int newPos = p->getPos() + m;
+    if (newPos <= board->getLim())
+    {
+        if (board->isLadderThere(newPos))
+        {
+            std::cout << std::format("({} climbed a ladder!)", p->getName());
+            newPos = board->getLadderTop(newPos);
+        }
+        else if (board->isSnakeThere(newPos))
+        {
+            std::cout << std::format("({} found a snake!)", p->getName());
+            newPos = board->getSnakeTail(newPos);
+        }
+
+        p->setPos(newPos);
+
+        std::cout << std::format("Moved {} from {} to {}", p->getName(), oldPos, newPos) << std::endl;
+    }
+
+    return p->getPos() == board->getLim();
+}
+
+void Game::playGame()
 {
     if (ongoing)
     {
@@ -168,24 +234,24 @@ void Board::playGame()
     endGame();
 }
 
-void Board::endGame()
+void Game::endGame()
 {
-    std::sort(players.begin(), players.end(), [&](Player &a, Player &b)
-              { return a.getPos() > b.getPos(); });
+    std::sort(players.begin(), players.end(), [&](Player *&a, Player *&b)
+              { return a->getPos() > b->getPos(); });
 
     std::cout << "\nGame Finished!\nThe Rankings of this game are:"
               << std::endl;
     for (auto &p : players)
     {
-        std::cout << p.getName() << " -> " << p.getPos() << std::endl;
+        std::cout << p->getName() << " -> " << p->getPos() << std::endl;
     }
 
     std::cout << "\nAll the players are now removed! Please add new players for next game.\n ";
 
     players.clear();
     ongoing = false;
+    board->currGame = nullptr;
 }
-
 ==> src/player.cpp <==
 #include "../include/player.hpp"
 
@@ -208,6 +274,7 @@ const std::string &Player::getName()
 ==> main.cpp <==
 #include "include/player.hpp"
 #include "include/board.hpp"
+#include "include/game.hpp"
 #include <iostream>
 
 int main()
@@ -225,8 +292,12 @@ int main()
     Player p4("Nike");
     Player p5("Rike");
 
-    Board b(100, snakes, ladders, p1, p2, p3, p4, p5);
-    b.playGame();
+    Board b(100, snakes, ladders);
+    Dice d;
+
+    Game g(&b, &d, &p1, &p2, &p3, &p4, &p5);
+
+    g.playGame();
 
     return 0;
 }
@@ -235,7 +306,7 @@ gen-insight:
 	tail -n +1 include/*.hpp src/*.cpp main.cpp Makefile > full_project.txt
 
 compile:
-	g++ -std=c++20 main.cpp src/player.cpp src/board.cpp -o main
+	g++ -std=c++20 main.cpp src/player.cpp src/board.cpp src/game.cpp -o main
 
 compile-and-execute: compile
 	./main
