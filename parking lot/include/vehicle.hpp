@@ -13,7 +13,7 @@ public:
     }
 };
 
-class TwoWheelerVehicle : public IVehicle
+class ThreeWheelerVehicle : public IVehicle
 {
 private:
     int id;
@@ -25,7 +25,7 @@ public:
     }
 };
 
-class TwoWheelerVehicle : public IVehicle
+class FourWheelerVehicle : public IVehicle
 {
 private:
     int id;

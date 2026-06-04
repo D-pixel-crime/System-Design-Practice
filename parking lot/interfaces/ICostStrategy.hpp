@@ -1,10 +1,11 @@
 #pragma once
-#include "../include/ticket.hpp"
+
+class Ticket;
 
 class ICostStrategy
 {
 public:
-    ~ICostStrategy() = default;
+    virtual ~ICostStrategy() = default;
 
     virtual double calculateCost(Ticket *_ticket) = 0;
 };
