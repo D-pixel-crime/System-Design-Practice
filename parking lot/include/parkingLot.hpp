@@ -11,7 +11,9 @@ private:
     IVehicle *parkedVehicle;
 
 public:
-    CommonParkingLot(int _id);
+    inline static int currLot = 0;
+
+    CommonParkingLot(int _id, IVehicle *_vehicleType);
 
     bool isOccupied() const override;
     void occupyLot(IVehicle *_vehicle) override;

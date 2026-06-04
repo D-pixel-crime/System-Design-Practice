@@ -7,6 +7,8 @@ private:
     int id;
 
 public:
+    TwoWheelerVehicle(int _id) : id{_id} {};
+
     int getId() const override
     {
         return id;
@@ -19,6 +21,8 @@ private:
     int id;
 
 public:
+    ThreeWheelerVehicle(int _id) : id{_id} {};
+
     int getId() const override
     {
         return id;
@@ -31,6 +35,8 @@ private:
     int id;
 
 public:
+    FourWheelerVehicle(int _id) : id{_id} {};
+
     int getId() const override
     {
         return id;

@@ -2,7 +2,10 @@
 #include <iostream>
 #include <format>
 
-CommonParkingLot::CommonParkingLot(int _id) : id{_id}, occupied{false} {}
+CommonParkingLot::CommonParkingLot(int _id, IVehicle *_vehicleType) : id{_id}, occupied{false}, vehicleType{_vehicleType}
+{
+    currLot++;
+}
 
 bool CommonParkingLot::isOccupied() const
 {

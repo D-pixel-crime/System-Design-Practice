@@ -1,0 +1,427 @@
+==> include/costStrategy.hpp <==
+#pragma once
+#include "../interfaces/ICostStrategy.hpp"
+#include "../include/ticket.hpp"
+
+class TwoWheelerNormalCostStrategy : public ICostStrategy
+{
+private:
+    double hourlyCost;
+
+public:
+    TwoWheelerNormalCostStrategy(double _hCost) : hourlyCost(_hCost) {}
+
+    double calculateCost(Ticket *_ticket) override;
+};
+
+class ThreeWheelerNormalCostStrategy : public ICostStrategy
+{
+private:
+    double hourlyCost;
+
+public:
+    ThreeWheelerNormalCostStrategy(double _hCost) : hourlyCost(_hCost) {}
+
+    double calculateCost(Ticket *_ticket) override;
+};
+
+class FourWheelerNormalCostStrategy : public ICostStrategy
+{
+private:
+    double hourlyCost;
+
+public:
+    FourWheelerNormalCostStrategy(double _hCost) : hourlyCost(_hCost) {}
+
+    double calculateCost(Ticket *_ticket) override;
+};
+
+class FourWheelerTaxCostStrategy : public ICostStrategy
+{
+private:
+    double hourlyCost;
+    double taxPercent;
+
+public:
+    FourWheelerTaxCostStrategy(double _hCost, double _taxPercent) : hourlyCost(_hCost), taxPercent(_taxPercent) {}
+
+    double calculateCost(Ticket *_ticket) override;
+};
+
+class HolidayExtraCostStrategy : public ICostStrategy
+{
+private:
+    double extraCost;
+
+public:
+    HolidayExtraCostStrategy(double _extraCost) : extraCost(_extraCost) {}
+
+    double calculateCost(Ticket *_ticket = nullptr) override;
+};
+==> include/parkingLot.hpp <==
+#pragma once
+#include "../interfaces/IParkingLot.hpp"
+#include "../interfaces/IVehicle.hpp"
+
+class CommonParkingLot : public IParkingLot
+{
+private:
+    int id;
+    bool occupied;
+    IVehicle *vehicleType;
+    IVehicle *parkedVehicle;
+
+public:
+    inline static int currLot = 0;
+
+    CommonParkingLot(int _id, IVehicle *_vehicleType);
+
+    bool isOccupied() const override;
+    void occupyLot(IVehicle *_vehicle) override;
+    void freeLot() override;
+    int getId() const override;
+    IVehicle *getVehicleType() const override;
+};
+
+class TwoWheelerParkingLot : public CommonParkingLot
+{
+    using CommonParkingLot::CommonParkingLot; // Helps in inheriting constructors
+};
+
+class ThreeWheelerParkingLot : public CommonParkingLot
+{
+    using CommonParkingLot::CommonParkingLot;
+};
+
+class FourWheelerParkingLot : public CommonParkingLot
+{
+    using CommonParkingLot::CommonParkingLot;
+};
+==> include/parkingManager.hpp <==
+#pragma once
+#include "parkingLot.hpp"
+#include "vehicle.hpp"
+#include <unordered_map>
+#include <set>
+
+class Ticket;
+
+class ParkingManager
+{
+private:
+    int profit;
+    std::unordered_map<IVehicle *, std::set<IParkingLot *>> parkingLots;
+
+public:
+    template <typename... Lots>
+    ParkingManager(Lots... parkingLots) : profit(0)
+    {
+        addParkingLot(parkingLots...);
+    }
+
+    void addParkingLot() {}
+
+    template <typename... Lots>
+    void addParkingLot(IParkingLot *p1, Lots... lots)
+    {
+        parkingLots[p1->getVehicleType()].insert(p1);
+        addParkingLot(lots...);
+    }
+
+    Ticket *allocateLot(IVehicle *_vehicle);
+    void releaseLot(Ticket *_ticket);
+};
+==> include/ticket.hpp <==
+#pragma once
+#include "../include/parkingLot.hpp"
+#include "../include/vehicle.hpp"
+#include "../include/costStrategy.hpp"
+#include <utility>
+#include <vector>
+
+class Ticket
+{
+private:
+    int id;
+    int entryTime;
+    int exitTime;
+    IParkingLot *lotID;
+    IVehicle *vehicleID;
+
+public:
+    inline static int currTickets = 0;
+
+    Ticket(int _id, int _entryTime, int _exitTIme, IParkingLot *_lotID, IVehicle *_vehicleID);
+
+    std::pair<int, int> getEntryAndExitTime();
+    void chargeCost(const std::vector<ICostStrategy *> &costStrats);
+    IParkingLot *getLotID();
+};
+==> include/vehicle.hpp <==
+#pragma once
+#include "../interfaces/IVehicle.hpp"
+
+class TwoWheelerVehicle : public IVehicle
+{
+private:
+    int id;
+
+public:
+    TwoWheelerVehicle(int _id) : id{_id} {};
+
+    int getId() const override
+    {
+        return id;
+    }
+};
+
+class ThreeWheelerVehicle : public IVehicle
+{
+private:
+    int id;
+
+public:
+    ThreeWheelerVehicle(int _id) : id{_id} {};
+
+    int getId() const override
+    {
+        return id;
+    }
+};
+
+class FourWheelerVehicle : public IVehicle
+{
+private:
+    int id;
+
+public:
+    FourWheelerVehicle(int _id) : id{_id} {};
+
+    int getId() const override
+    {
+        return id;
+    }
+};
+==> src/costStrategy.cpp <==
+#include "../include/costStrategy.hpp"
+
+double TwoWheelerNormalCostStrategy::calculateCost(Ticket *_ticket)
+{
+    auto [s, e] = _ticket->getEntryAndExitTime();
+    return hourlyCost * (e - s);
+}
+
+double ThreeWheelerNormalCostStrategy::calculateCost(Ticket *_ticket)
+{
+    auto [s, e] = _ticket->getEntryAndExitTime();
+    return hourlyCost * (e - s);
+}
+
+double FourWheelerNormalCostStrategy::calculateCost(Ticket *_ticket)
+{
+    auto [s, e] = _ticket->getEntryAndExitTime();
+    return hourlyCost * (e - s);
+}
+
+double FourWheelerTaxCostStrategy::calculateCost(Ticket *_ticket)
+{
+    auto [s, e] = _ticket->getEntryAndExitTime();
+    auto normalCost = hourlyCost * (e - s);
+    return normalCost + (hourlyCost * (taxPercent / 100.0));
+}
+
+double HolidayExtraCostStrategy::calculateCost(Ticket *_ticket)
+{
+    return extraCost;
+}
+==> src/parkingLot.cpp <==
+#include "../include/parkingLot.hpp"
+#include <iostream>
+#include <format>
+
+CommonParkingLot::CommonParkingLot(int _id, IVehicle *_vehicleType) : id{_id}, occupied{false}, vehicleType{_vehicleType}
+{
+    currLot++;
+}
+
+bool CommonParkingLot::isOccupied() const
+{
+    return occupied;
+}
+
+void CommonParkingLot::occupyLot(IVehicle *_vehicle)
+{
+    if (occupied)
+    {
+        std::cout << "Parking Lot Already Occupied!" << std::endl;
+        return;
+    }
+
+    std::cout << std::format("Parking-Lot-{} is now OCCUPIED by Vehicle-{}", id, _vehicle->getId()) << std::endl;
+
+    parkedVehicle = _vehicle;
+    occupied = true;
+}
+
+void CommonParkingLot::freeLot()
+{
+    if (!occupied)
+    {
+        std::cout << "Parking Lot Already Free!" << std::endl;
+        return;
+    }
+
+    std::cout << std::format("Parking-Lot-{} is not FREE!", id) << std::endl;
+
+    parkedVehicle = nullptr;
+    occupied = false;
+}
+
+int CommonParkingLot::getId() const
+{
+    return id;
+}
+
+IVehicle *CommonParkingLot::getVehicleType() const
+{
+    return vehicleType;
+}
+==> src/parkingManager.cpp <==
+#include "../include/parkingManager.hpp"
+#include "../include/ticket.hpp"
+#include <typeinfo>
+#include <chrono>
+
+Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
+{
+    if (!parkingLots.count(_vehicle) || parkingLots[_vehicle].empty())
+    {
+        return nullptr;
+    }
+
+    auto now = std::chrono::system_clock::now();
+    std::chrono::sys_days days_point = std::chrono::time_point_cast<std::chrono::days>(now);
+    unsigned day = (std::chrono::weekday{days_point}).c_encoding();
+
+    int entryTime = 0, exitTime = 5;
+    IParkingLot *availableLot = *parkingLots[_vehicle].begin();
+    parkingLots[_vehicle].erase(availableLot);
+    availableLot->occupyLot(_vehicle);
+    ICostStrategy *costStrat = nullptr;
+
+    if (typeid(*_vehicle) == typeid(TwoWheelerVehicle))
+    {
+        costStrat = new TwoWheelerNormalCostStrategy(20.0);
+    }
+    else if (typeid(*_vehicle) == typeid(ThreeWheelerVehicle))
+    {
+        costStrat = new ThreeWheelerNormalCostStrategy(30.0);
+    }
+    else if (typeid(*_vehicle) == typeid(FourWheelerVehicle))
+    {
+        if (day < 5)
+        {
+            costStrat = new FourWheelerNormalCostStrategy(40.0);
+        }
+        else
+        {
+            costStrat = new FourWheelerTaxCostStrategy(40.0, 25.0);
+        }
+    }
+
+    Ticket *ticket = new Ticket(Ticket::currTickets, entryTime, exitTime, availableLot, _vehicle);
+    if (day >= 5)
+    {
+        ticket->chargeCost({costStrat, new HolidayExtraCostStrategy(100.0)});
+    }
+    else
+    {
+        ticket->chargeCost({costStrat});
+    }
+
+    delete costStrat;
+    return ticket;
+}
+
+void ParkingManager::releaseLot(Ticket *_ticket)
+{
+    IParkingLot *busyLot = _ticket->getLotID();
+    busyLot->freeLot();
+    parkingLots[busyLot->getVehicleType()].insert(busyLot);
+
+    delete _ticket;
+}
+==> src/ticket.cpp <==
+#include "../include/ticket.hpp"
+#include <iostream>
+#include <format>
+
+Ticket::Ticket(int _id, int _entryTime, int _exitTIme, IParkingLot *_lotID, IVehicle *_vehicleID) : id{_id}, entryTime{_entryTime}, exitTime{_exitTIme}, lotID{_lotID}, vehicleID{_vehicleID}
+{
+    currTickets++;
+}
+
+std::pair<int, int> Ticket::getEntryAndExitTime()
+{
+    return std::make_pair(entryTime, exitTime);
+}
+
+void Ticket::chargeCost(const std::vector<ICostStrategy *> &costStrats)
+{
+    double toPay = 0.0;
+    for (auto &c : costStrats)
+    {
+        toPay += c->calculateCost(this);
+    }
+
+    std::cout << std::format("Vehicle-{} payed {} for Parking-Lot-{}", vehicleID->getId(), toPay, lotID->getId()) << std::endl;
+}
+
+IParkingLot *Ticket::getLotID()
+{
+    return lotID;
+}
+
+==> interfaces/ICostStrategy.hpp <==
+#pragma once
+
+class Ticket;
+
+class ICostStrategy
+{
+public:
+    virtual ~ICostStrategy() = default;
+
+    virtual double calculateCost(Ticket *_ticket) = 0;
+};
+==> interfaces/IParkingLot.hpp <==
+#pragma once
+
+class IVehicle;
+class IParkingLot;
+
+// Parking Lot Interface
+class IParkingLot
+{
+public:
+    virtual ~IParkingLot() = default;
+
+    virtual bool isOccupied() const = 0;
+    virtual void occupyLot(IVehicle *_vehicle) = 0;
+    virtual void freeLot() = 0;
+    virtual int getId() const = 0;
+    virtual IVehicle *getVehicleType() const = 0;
+};
+==> interfaces/IVehicle.hpp <==
+#pragma once
+
+class IVehicle
+{
+public:
+    virtual ~IVehicle() = default;
+
+    virtual int getId() const = 0;
+};
+==> Makefile <==
+gen-insight:
+	tail -n +1 include/*.hpp src/*.cpp interfaces/*.hpp Makefile > full_project.txt

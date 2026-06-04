@@ -3,7 +3,7 @@
 class IVehicle
 {
 public:
-    ~IVehicle() = default;
+    virtual ~IVehicle() = default;
 
     virtual int getId() const = 0;
 };

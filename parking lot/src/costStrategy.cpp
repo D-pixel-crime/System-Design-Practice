@@ -25,7 +25,7 @@ double FourWheelerTaxCostStrategy::calculateCost(Ticket *_ticket)
     return normalCost + (hourlyCost * (taxPercent / 100.0));
 }
 
-double HolidayExtraCostStrategy::calculateCost(Ticket *_ticket = nullptr)
+double HolidayExtraCostStrategy::calculateCost(Ticket *_ticket)
 {
     return extraCost;
 }
