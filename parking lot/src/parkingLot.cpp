@@ -2,7 +2,7 @@
 #include <iostream>
 #include <format>
 
-CommonParkingLot::CommonParkingLot(int _id, IVehicle *_vehicleType) : id{_id}, occupied{false}, vehicleType{_vehicleType}
+CommonParkingLot::CommonParkingLot(int _id, std::type_index _vehicleType) : id{_id}, occupied{false}, vehicleType{_vehicleType}
 {
     currLot++;
 }
@@ -16,11 +16,11 @@ void CommonParkingLot::occupyLot(IVehicle *_vehicle)
 {
     if (occupied)
     {
-        std::cout << "Parking Lot Already Occupied!" << std::endl;
+        std::cout << std::format("Parking-Lot-{} ALREADY OCCUPIED!", id) << std::endl;
         return;
     }
 
-    std::cout << std::format("Parking-Lot-{} is now OCCUPIED by Vehicle-{}", id, _vehicle->getId()) << std::endl;
+    std::cout << std::format("Parking-Lot-{} is NOW OCCUPIED by Vehicle-{}", id, _vehicle->getId()) << std::endl;
 
     parkedVehicle = _vehicle;
     occupied = true;
@@ -30,11 +30,11 @@ void CommonParkingLot::freeLot()
 {
     if (!occupied)
     {
-        std::cout << "Parking Lot Already Free!" << std::endl;
+        std::cout << std::format("Parking-Lot-{} ALREADY FREE!", id) << std::endl;
         return;
     }
 
-    std::cout << std::format("Parking-Lot-{} is not FREE!", id) << std::endl;
+    std::cout << std::format("Parking-Lot-{} is NOW FREE!", id) << std::endl;
 
     parkedVehicle = nullptr;
     occupied = false;
@@ -45,7 +45,7 @@ int CommonParkingLot::getId() const
     return id;
 }
 
-IVehicle *CommonParkingLot::getVehicleType() const
+std::type_index CommonParkingLot::getVehicleType() const
 {
     return vehicleType;
 }

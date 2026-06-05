@@ -3,6 +3,7 @@
 #include "vehicle.hpp"
 #include <unordered_map>
 #include <set>
+#include <typeindex>
 
 class Ticket;
 
@@ -10,7 +11,7 @@ class ParkingManager
 {
 private:
     int profit;
-    std::unordered_map<IVehicle *, std::set<IParkingLot *>> parkingLots;
+    std::unordered_map<std::type_index, std::set<IParkingLot *>> parkingLots;
 
 public:
     template <typename... Lots>
@@ -24,7 +25,8 @@ public:
     template <typename... Lots>
     void addParkingLot(IParkingLot *p1, Lots... lots)
     {
-        parkingLots[p1->getVehicleType()].insert(p1);
+        std::type_index vehicleType = p1->getVehicleType();
+        parkingLots[vehicleType].insert(p1);
         addParkingLot(lots...);
     }
 

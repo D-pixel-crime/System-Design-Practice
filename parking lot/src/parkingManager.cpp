@@ -1,11 +1,15 @@
 #include "../include/parkingManager.hpp"
 #include "../include/ticket.hpp"
 #include <typeinfo>
+#include <typeindex>
 #include <chrono>
+#include <iostream>
 
 Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
 {
-    if (!parkingLots.count(_vehicle) || parkingLots[_vehicle].empty())
+    std::type_index vehicleType = std::type_index(typeid(*_vehicle));
+
+    if (!parkingLots.count(vehicleType) || parkingLots[vehicleType].empty())
     {
         return nullptr;
     }
@@ -15,9 +19,8 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     unsigned day = (std::chrono::weekday{days_point}).c_encoding();
 
     int entryTime = 0, exitTime = 5;
-    IParkingLot *availableLot = *parkingLots[_vehicle].begin();
-    parkingLots[_vehicle].erase(availableLot);
-    availableLot->occupyLot(_vehicle);
+    IParkingLot *availableLot = *parkingLots[vehicleType].begin();
+    parkingLots[vehicleType].erase(availableLot);
     ICostStrategy *costStrat = nullptr;
 
     if (typeid(*_vehicle) == typeid(TwoWheelerVehicle))
@@ -30,7 +33,7 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     }
     else if (typeid(*_vehicle) == typeid(FourWheelerVehicle))
     {
-        if (day < 5)
+        if (day > 0 && day < 6)
         {
             costStrat = new FourWheelerNormalCostStrategy(40.0);
         }
@@ -41,7 +44,7 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     }
 
     Ticket *ticket = new Ticket(Ticket::currTickets, entryTime, exitTime, availableLot, _vehicle);
-    if (day >= 5)
+    if (day == 0 || day == 6)
     {
         ticket->chargeCost({costStrat, new HolidayExtraCostStrategy(100.0)});
     }
@@ -49,6 +52,9 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     {
         ticket->chargeCost({costStrat});
     }
+
+    availableLot->occupyLot(_vehicle);
+    std::cout << std::endl;
 
     delete costStrat;
     return ticket;

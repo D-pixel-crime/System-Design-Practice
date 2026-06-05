@@ -7,7 +7,12 @@ private:
     int id;
 
 public:
-    TwoWheelerVehicle(int _id) : id{_id} {};
+    inline static int currId = 0;
+
+    TwoWheelerVehicle(int _id) : id{_id}
+    {
+        currId++;
+    };
 
     int getId() const override
     {
@@ -21,7 +26,12 @@ private:
     int id;
 
 public:
-    ThreeWheelerVehicle(int _id) : id{_id} {};
+    inline static int currId = 0;
+
+    ThreeWheelerVehicle(int _id) : id{_id}
+    {
+        currId++;
+    };
 
     int getId() const override
     {
@@ -35,7 +45,12 @@ private:
     int id;
 
 public:
-    FourWheelerVehicle(int _id) : id{_id} {};
+    inline static int currId = 0;
+
+    FourWheelerVehicle(int _id) : id{_id}
+    {
+        currId++;
+    };
 
     int getId() const override
     {

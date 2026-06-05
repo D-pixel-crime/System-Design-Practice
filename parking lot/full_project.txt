@@ -62,25 +62,26 @@ public:
 #pragma once
 #include "../interfaces/IParkingLot.hpp"
 #include "../interfaces/IVehicle.hpp"
+#include <typeindex>
 
 class CommonParkingLot : public IParkingLot
 {
 private:
     int id;
     bool occupied;
-    IVehicle *vehicleType;
+    std::type_index vehicleType;
     IVehicle *parkedVehicle;
 
 public:
     inline static int currLot = 0;
 
-    CommonParkingLot(int _id, IVehicle *_vehicleType);
+    CommonParkingLot(int _id, std::type_index _vehicleType);
 
     bool isOccupied() const override;
     void occupyLot(IVehicle *_vehicle) override;
     void freeLot() override;
     int getId() const override;
-    IVehicle *getVehicleType() const override;
+    std::type_index getVehicleType() const override;
 };
 
 class TwoWheelerParkingLot : public CommonParkingLot
@@ -103,6 +104,7 @@ class FourWheelerParkingLot : public CommonParkingLot
 #include "vehicle.hpp"
 #include <unordered_map>
 #include <set>
+#include <typeindex>
 
 class Ticket;
 
@@ -110,7 +112,7 @@ class ParkingManager
 {
 private:
     int profit;
-    std::unordered_map<IVehicle *, std::set<IParkingLot *>> parkingLots;
+    std::unordered_map<std::type_index, std::set<IParkingLot *>> parkingLots;
 
 public:
     template <typename... Lots>
@@ -124,7 +126,8 @@ public:
     template <typename... Lots>
     void addParkingLot(IParkingLot *p1, Lots... lots)
     {
-        parkingLots[p1->getVehicleType()].insert(p1);
+        std::type_index vehicleType = p1->getVehicleType();
+        parkingLots[vehicleType].insert(p1);
         addParkingLot(lots...);
     }
 
@@ -167,7 +170,12 @@ private:
     int id;
 
 public:
-    TwoWheelerVehicle(int _id) : id{_id} {};
+    inline static int currId = 0;
+
+    TwoWheelerVehicle(int _id) : id{_id}
+    {
+        currId++;
+    };
 
     int getId() const override
     {
@@ -181,7 +189,12 @@ private:
     int id;
 
 public:
-    ThreeWheelerVehicle(int _id) : id{_id} {};
+    inline static int currId = 0;
+
+    ThreeWheelerVehicle(int _id) : id{_id}
+    {
+        currId++;
+    };
 
     int getId() const override
     {
@@ -195,7 +208,12 @@ private:
     int id;
 
 public:
-    FourWheelerVehicle(int _id) : id{_id} {};
+    inline static int currId = 0;
+
+    FourWheelerVehicle(int _id) : id{_id}
+    {
+        currId++;
+    };
 
     int getId() const override
     {
@@ -239,7 +257,7 @@ double HolidayExtraCostStrategy::calculateCost(Ticket *_ticket)
 #include <iostream>
 #include <format>
 
-CommonParkingLot::CommonParkingLot(int _id, IVehicle *_vehicleType) : id{_id}, occupied{false}, vehicleType{_vehicleType}
+CommonParkingLot::CommonParkingLot(int _id, std::type_index _vehicleType) : id{_id}, occupied{false}, vehicleType{_vehicleType}
 {
     currLot++;
 }
@@ -253,11 +271,11 @@ void CommonParkingLot::occupyLot(IVehicle *_vehicle)
 {
     if (occupied)
     {
-        std::cout << "Parking Lot Already Occupied!" << std::endl;
+        std::cout << std::format("Parking-Lot-{} ALREADY OCCUPIED!", id) << std::endl;
         return;
     }
 
-    std::cout << std::format("Parking-Lot-{} is now OCCUPIED by Vehicle-{}", id, _vehicle->getId()) << std::endl;
+    std::cout << std::format("Parking-Lot-{} is NOW OCCUPIED by Vehicle-{}", id, _vehicle->getId()) << std::endl;
 
     parkedVehicle = _vehicle;
     occupied = true;
@@ -267,11 +285,11 @@ void CommonParkingLot::freeLot()
 {
     if (!occupied)
     {
-        std::cout << "Parking Lot Already Free!" << std::endl;
+        std::cout << std::format("Parking-Lot-{} ALREADY FREE!", id) << std::endl;
         return;
     }
 
-    std::cout << std::format("Parking-Lot-{} is not FREE!", id) << std::endl;
+    std::cout << std::format("Parking-Lot-{} is NOW FREE!", id) << std::endl;
 
     parkedVehicle = nullptr;
     occupied = false;
@@ -282,7 +300,7 @@ int CommonParkingLot::getId() const
     return id;
 }
 
-IVehicle *CommonParkingLot::getVehicleType() const
+std::type_index CommonParkingLot::getVehicleType() const
 {
     return vehicleType;
 }
@@ -290,11 +308,15 @@ IVehicle *CommonParkingLot::getVehicleType() const
 #include "../include/parkingManager.hpp"
 #include "../include/ticket.hpp"
 #include <typeinfo>
+#include <typeindex>
 #include <chrono>
+#include <iostream>
 
 Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
 {
-    if (!parkingLots.count(_vehicle) || parkingLots[_vehicle].empty())
+    std::type_index vehicleType = std::type_index(typeid(*_vehicle));
+
+    if (!parkingLots.count(vehicleType) || parkingLots[vehicleType].empty())
     {
         return nullptr;
     }
@@ -304,9 +326,8 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     unsigned day = (std::chrono::weekday{days_point}).c_encoding();
 
     int entryTime = 0, exitTime = 5;
-    IParkingLot *availableLot = *parkingLots[_vehicle].begin();
-    parkingLots[_vehicle].erase(availableLot);
-    availableLot->occupyLot(_vehicle);
+    IParkingLot *availableLot = *parkingLots[vehicleType].begin();
+    parkingLots[vehicleType].erase(availableLot);
     ICostStrategy *costStrat = nullptr;
 
     if (typeid(*_vehicle) == typeid(TwoWheelerVehicle))
@@ -319,7 +340,7 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     }
     else if (typeid(*_vehicle) == typeid(FourWheelerVehicle))
     {
-        if (day < 5)
+        if (day > 0 && day < 6)
         {
             costStrat = new FourWheelerNormalCostStrategy(40.0);
         }
@@ -330,7 +351,7 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     }
 
     Ticket *ticket = new Ticket(Ticket::currTickets, entryTime, exitTime, availableLot, _vehicle);
-    if (day >= 5)
+    if (day == 0 || day == 6)
     {
         ticket->chargeCost({costStrat, new HolidayExtraCostStrategy(100.0)});
     }
@@ -338,6 +359,9 @@ Ticket *ParkingManager::allocateLot(IVehicle *_vehicle)
     {
         ticket->chargeCost({costStrat});
     }
+
+    availableLot->occupyLot(_vehicle);
+    std::cout << std::endl;
 
     delete costStrat;
     return ticket;
@@ -396,6 +420,7 @@ public:
 };
 ==> interfaces/IParkingLot.hpp <==
 #pragma once
+#include <typeindex>
 
 class IVehicle;
 class IParkingLot;
@@ -410,7 +435,7 @@ public:
     virtual void occupyLot(IVehicle *_vehicle) = 0;
     virtual void freeLot() = 0;
     virtual int getId() const = 0;
-    virtual IVehicle *getVehicleType() const = 0;
+    virtual std::type_index getVehicleType() const = 0;
 };
 ==> interfaces/IVehicle.hpp <==
 #pragma once
@@ -422,6 +447,146 @@ public:
 
     virtual int getId() const = 0;
 };
+==> main.cpp <==
+#include "include/costStrategy.hpp"
+#include "include/parkingLot.hpp"
+#include "include/parkingManager.hpp"
+#include "include/ticket.hpp"
+#include "include/vehicle.hpp"
+#include <typeindex>
+#include <typeinfo>
+#include <iostream>
+#include <queue>
+#include <format>
+
+int main()
+{
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+
+    std::cout << "--- Initializing Parking Lots ---" << std::endl;
+
+    IParkingLot *a1 = new TwoWheelerParkingLot(TwoWheelerParkingLot::currLot, std::type_index(typeid(TwoWheelerVehicle)));
+    IParkingLot *a2 = new TwoWheelerParkingLot(TwoWheelerParkingLot::currLot, std::type_index(typeid(TwoWheelerVehicle)));
+    IParkingLot *a3 = new TwoWheelerParkingLot(TwoWheelerParkingLot::currLot, std::type_index(typeid(TwoWheelerVehicle)));
+    IParkingLot *a4 = new TwoWheelerParkingLot(TwoWheelerParkingLot::currLot, std::type_index(typeid(TwoWheelerVehicle)));
+
+    IParkingLot *b1 = new ThreeWheelerParkingLot(ThreeWheelerParkingLot::currLot, std::type_index(typeid(ThreeWheelerVehicle)));
+    IParkingLot *b2 = new ThreeWheelerParkingLot(ThreeWheelerParkingLot::currLot, std::type_index(typeid(ThreeWheelerVehicle)));
+    IParkingLot *b3 = new ThreeWheelerParkingLot(ThreeWheelerParkingLot::currLot, std::type_index(typeid(ThreeWheelerVehicle)));
+
+    IParkingLot *c1 = new FourWheelerParkingLot(FourWheelerParkingLot::currLot, std::type_index(typeid(FourWheelerVehicle)));
+    IParkingLot *c2 = new FourWheelerParkingLot(FourWheelerParkingLot::currLot, std::type_index(typeid(FourWheelerVehicle)));
+
+    ParkingManager manager(a1, a2, a3, a4, b1, b2, b3, c1, c2);
+
+    std::cout << "\n--- Initializing Vehicles ---" << std::endl;
+    IVehicle *v1 = new TwoWheelerVehicle(TwoWheelerVehicle::currId);
+    IVehicle *v2 = new TwoWheelerVehicle(TwoWheelerVehicle::currId);
+    IVehicle *v3 = new TwoWheelerVehicle(TwoWheelerVehicle::currId);
+    IVehicle *v4 = new TwoWheelerVehicle(TwoWheelerVehicle::currId);
+    IVehicle *v5 = new TwoWheelerVehicle(TwoWheelerVehicle::currId);
+
+    IVehicle *v6 = new ThreeWheelerVehicle(ThreeWheelerVehicle::currId);
+    IVehicle *v7 = new ThreeWheelerVehicle(ThreeWheelerVehicle::currId);
+    IVehicle *v8 = new ThreeWheelerVehicle(ThreeWheelerVehicle::currId);
+    IVehicle *v9 = new ThreeWheelerVehicle(ThreeWheelerVehicle::currId);
+
+    IVehicle *v10 = new FourWheelerVehicle(FourWheelerVehicle::currId);
+    IVehicle *v11 = new FourWheelerVehicle(FourWheelerVehicle::currId);
+    IVehicle *v12 = new FourWheelerVehicle(FourWheelerVehicle::currId);
+
+    std::cout << "\n--- Simulating Ticket Allocations ---" << std::endl;
+
+    std::queue<Ticket *> activeTickets;
+
+    IVehicle *twoWheelers[] = {v1, v2, v3, v4, v5};
+    for (auto v : twoWheelers)
+    {
+        Ticket *t = manager.allocateLot(v);
+        if (t)
+        {
+            activeTickets.push(t);
+        }
+        else
+        {
+            std::cout << std::format("Allocation Failed: No parking lot available for Vehicle-{}", v->getId()) << std::endl;
+        }
+    }
+
+    IVehicle *fourWheelers[] = {v10, v11, v12};
+    for (auto v : fourWheelers)
+    {
+        Ticket *t = manager.allocateLot(v);
+        if (t)
+        {
+            activeTickets.push(t);
+        }
+        else
+        {
+            std::cout << std::format("Allocation Failed: No parking lot available for Vehicle-{}", v->getId()) << std::endl;
+        }
+    }
+
+    std::cout << "\n--- Simulating Vehicle Releases ---" << std::endl;
+
+    if (!activeTickets.empty())
+    {
+        std::cout << "Releasing earliest parked vehicle..." << std::endl;
+        manager.releaseLot(activeTickets.front());
+        activeTickets.pop();
+    }
+
+    std::cout << "\n--- Retesting Allocation on Recently Freed Space ---" << std::endl;
+
+    Ticket *retryTicket = manager.allocateLot(v5);
+    if (retryTicket)
+    {
+        activeTickets.push(retryTicket);
+    }
+
+    std::cout << "\n--- Cleaning up Remainder Memory ---" << std::endl;
+
+    while (!activeTickets.empty())
+    {
+        manager.releaseLot(activeTickets.front());
+        activeTickets.pop();
+    }
+
+    delete v1;
+    delete v2;
+    delete v3;
+    delete v4;
+    delete v5;
+    delete v6;
+    delete v7;
+    delete v8;
+    delete v9;
+    delete v10;
+    delete v11;
+    delete v12;
+
+    delete a1;
+    delete a2;
+    delete a3;
+    delete a4;
+    delete b1;
+    delete b2;
+    delete b3;
+    delete c1;
+    delete c2;
+
+    std::cout << "Testing completed successfully!" << std::endl;
+    return 0;
+}
 ==> Makefile <==
 gen-insight:
-	tail -n +1 include/*.hpp src/*.cpp interfaces/*.hpp Makefile > full_project.txt
+	tail -n +1 include/*.hpp src/*.cpp interfaces/*.hpp main.cpp Makefile > full_project.txt
+
+compile:
+	g++ -std=c++20 main.cpp src/*.cpp -o output
+
+execute:
+	./output
+
+compile-execute: compile execute
