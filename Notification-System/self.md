@@ -37,7 +37,7 @@
   - `size`: Constant size of queues during initialisation. Queues should be size initialised to protect against back-pressure.
   - `push_queue(Notification)(constant size)`***Study Ring Buffers***: Queue, that stores incoming notifications to be pushed to the user.
   - `retry_queue(Notification, wait_time)(constant size)`***Study Ring Buffers***: Queue for storing failed notifications. Each missed push should increase the wait time upto certain limit, until finally dropping it.
-### **_Class_ Object_Pool/Slab_Allocator _(Singleton Pattern)_**:
+### **_Class_ Queue_Pool/Slab_Allocator _(Singleton Pattern)_**:
   - `static total_queues`: The total number of objects creatable for `Message_Queue` Class.
   - `queue_pool`*(list of `Message_Queue`)*: Implement the idea of SLAB ALLOCATOR. Instead of allocating and destroying objects, hand over available queue. If not available, simply deny request or **some other fallback**.
   - `allocate_queue()`: Hands over available queue(if any) from the `queue_pool`.
