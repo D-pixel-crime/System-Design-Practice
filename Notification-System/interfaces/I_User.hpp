@@ -7,13 +7,9 @@
 
 class I_User
 {
-private:
-    int id;
-
 public:
     virtual ~I_User() = default;
 
     virtual void getStatus(I_Product *&_product) const = 0;
-
     virtual void addNotificationMethod(I_Product *&_product, I_Notification_Method *&_method) const = 0;
 };

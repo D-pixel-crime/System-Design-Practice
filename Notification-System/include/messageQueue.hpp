@@ -10,5 +10,7 @@ private:
     std::queue<Notification *> retry_queue;
 
 public:
+    Message_Queue(const int &_size);
+
     bool scheduleNotification(const Notification *&_notification);
 };
