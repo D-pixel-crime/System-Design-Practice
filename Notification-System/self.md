@@ -30,13 +30,24 @@
 ### **_Interface_ Notifier**:
   - `notify(product, user, method)`: Schedules a single notification for a particular notification method.
   - `notifyAll(product)`: Schedules notifications for list of users with all their opted notification methods for a particular product.
+### **_Class_ Database**:
+  - `products`*(list)*
+  - `users`*(list)*
+  - `subscriptions`*map of (Product -> map of (User -> list of Methods))*
+  - `registerProduct(Product)`
+  - `registerUser(User)`
+  - `subscribeUser(Product, User, Notification_Method)`
+  - `unsubscribeUser(Product, User, Notification_Method)`
+  - `getPreferences(Product, User)`: Returns the whole list of methods for User. If User is NULL, returns all the Users and their methods.
 ### **_Interface/Class_ User**:
-  - `products -> (list)notification_options/methods`*(map)*: All the products the user is interested in and their respective notification-options/methods.
+  - `id`
   - `getStatus(product)`: Queries the availability for a **subscribed** product.
+  - `addNotificationMethod(Product, Notification_Method)`: Just forward a request to `Database` for updating the User's preferences.
 ### **_Class_ Message_Queue**:
   - `size`: Constant size of queues during initialisation. Queues should be size initialised to protect against back-pressure.
   - `push_queue(Notification)(constant size)`***Study Ring Buffers***: Queue, that stores incoming notifications to be pushed to the user.
   - `retry_queue(Notification, wait_time)(constant size)`***Study Ring Buffers***: Queue for storing failed notifications. Each missed push should increase the wait time upto certain limit, until finally dropping it.
+  - `scheduleNotification(Notification)`: The `Notifier` can use call this function to get try to add the Notification to the queue.
 ### **_Class_ Queue_Pool/Slab_Allocator _(Singleton Pattern)_**:
   - `static total_queues`: The total number of objects creatable for `Message_Queue` Class.
   - `queue_pool`*(list of `Message_Queue`)*: Implement the idea of SLAB ALLOCATOR. Instead of allocating and destroying objects, hand over available queue. If not available, simply deny request or **some other fallback**.

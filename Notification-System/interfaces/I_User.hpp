@@ -8,10 +8,12 @@
 class I_User
 {
 private:
-    std::unordered_map<std::type_index, std::vector<I_Notification_Method *>> subscribedProducts;
+    int id;
 
 public:
     virtual ~I_User() = default;
 
     virtual void getStatus(I_Product *&_product) const = 0;
+
+    virtual void addNotificationMethod(I_Product *&_product, I_Notification_Method *&_method) const = 0;
 };

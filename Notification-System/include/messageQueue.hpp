@@ -8,4 +8,7 @@ private:
     int size;
     std::queue<Notification *> push_queue;
     std::queue<Notification *> retry_queue;
+
+public:
+    bool scheduleNotification(const Notification *&_notification);
 };
