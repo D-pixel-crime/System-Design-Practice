@@ -1,8 +1,15 @@
 #pragma once
 #include "notification.hpp"
+#include "messageQueue.hpp"
 
 class Dispatcher
 {
+private:
+    Message_Queue *queue;
+
 public:
-    void push(Notification *&_notification) const;
+    Dispatcher(Message_Queue *_queue);
+
+    void pullNotification();
+    void deployNotification(Notification *_notification) const;
 };

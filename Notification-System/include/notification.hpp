@@ -16,6 +16,7 @@ public:
     Notification() = default;
     Notification(I_Product *_product, I_User *_subscriber, I_Notification_Method *_notificationMethod);
 
+    void reset();
     void update(I_Product *_product, I_User *_subscriber, I_Notification_Method *_notificationMethod);
     std::tuple<I_Product *, I_User *, I_Notification_Method *> getNotificationDetails();
 };

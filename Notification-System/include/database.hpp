@@ -9,14 +9,19 @@
 class Database : public I_Database
 {
 private:
+    inline static Database *db = nullptr;
     std::set<I_Product *> products;
     std::set<I_User *> users;
     std::unordered_map<I_Product *, std::unordered_map<I_User *, std::set<I_Notification_Method *>>> subscriptions;
 
+    Database() = default;
+
 public:
-    void registerProduct(I_Product *&_product) override;
-    void registerUser(I_User *&_user) override;
-    void subscribeUser(I_Product *&_product, I_User *&_user, I_Notification_Method *&_notificationMethod) override;
-    void unsubscribeUser(I_Product *&_product, I_User *&_user, I_Notification_Method *&_notificationMethod) override;
-    const std::unordered_map<I_User *, std::set<I_Notification_Method *>> getPreferences(I_Product *&_product, I_User *&_user) const override;
+    static Database *getConn();
+
+    void registerProduct(I_Product *_product) override;
+    void registerUser(I_User *_user) override;
+    void subscribeUser(I_Product *_product, I_User *_user, I_Notification_Method *_notificationMethod) override;
+    void unsubscribeUser(I_Product *_product, I_User *_user, I_Notification_Method *_notificationMethod) override;
+    const std::unordered_map<I_User *, std::set<I_Notification_Method *>> getPreferences(I_Product *_product, I_User *_user = nullptr) override;
 };

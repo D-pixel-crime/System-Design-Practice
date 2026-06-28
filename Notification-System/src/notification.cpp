@@ -9,6 +9,13 @@ void Notification::update(I_Product *_product, I_User *_subscriber, I_Notificati
     notificationMethod = _notificationMethod;
 }
 
+void Notification::reset()
+{
+    product = nullptr;
+    subscriber = nullptr;
+    notificationMethod = nullptr;
+}
+
 std::tuple<I_Product *, I_User *, I_Notification_Method *> Notification::getNotificationDetails()
 {
     return std::make_tuple(product, subscriber, notificationMethod);

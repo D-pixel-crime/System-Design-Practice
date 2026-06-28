@@ -8,7 +8,7 @@ Queue_Allocator::Queue_Allocator(int _totalQueues, const int &_queueSize)
     total_queues = _totalQueues;
     while (_totalQueues--)
     {
-        queuePool.push_back(new Message_Queue(_queueSize));
+        queuePool.push(new Message_Queue(_queueSize));
     }
 }
 
@@ -27,20 +27,9 @@ Queue_Allocator *Queue_Allocator::createQueuePool(const int &_totalQueues, const
 
 Message_Queue *Queue_Allocator::allocate_queue()
 {
-    if (!queuePool.empty())
-    {
-        auto ret = queuePool.back();
-        queuePool.pop_back();
-        return ret;
-    }
-    return nullptr;
-}
+    auto f = queuePool.top();
+    queuePool.pop();
+    queuePool.push(f);
 
-void Queue_Allocator::restore_queue(Message_Queue *_queue)
-{
-    if (queuePool.size() == total_queues)
-    {
-        return;
-    }
-    queuePool.push_back(_queue);
+    return queuePool.top();
 }
