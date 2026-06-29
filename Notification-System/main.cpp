@@ -5,39 +5,39 @@
 #include "include/product.hpp"
 #include "include/queueAllocator.hpp"
 #include "include/user.hpp"
-#include <mutex>
 
 #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
 
-namespace {
-// A single queue ensures all notifications get routed correctly despite the
-// max-heap load balancing bug in Queue_Allocator.
-// However, we will deploy multiple Dispatcher threads to consume this queue
-// concurrently.
-constexpr int kMessageQueuePoolSize = 1;
-constexpr int kMessageQueueCapacity = 500;
-constexpr int kNotificationPoolSize = 500;
-constexpr auto kDispatchWindow = std::chrono::seconds(5);
-constexpr int kNumUsers = 5;
-constexpr int kNumProducts = 10;
-constexpr int kNumDispatchers = 3;
+namespace
+{
+  // Complex Setup Configuration
+  constexpr int kMessageQueuePoolSize = 3;
+  constexpr int kMessageQueueCapacity = 500;
+  constexpr int kNotificationPoolSize = 1000;
+  constexpr auto kDispatchWindow = std::chrono::seconds(5);
+  constexpr int kNumUsers = 10;
+  constexpr int kNumProducts = 15;
+  constexpr int kNumDispatchersPerQueue = 2;
 } // namespace
 
-struct SubInfo {
+struct SubInfo
+{
   int userId;
   std::string productName;
   std::vector<std::string> methods;
 };
 
-int main() {
+int main()
+{
   std::cout
-      << "=== Notification System Simulation : Comprehensive Test ===\n\n";
+      << "=== Notification System Simulation : Fully Concurrent Test ===\n\n";
 
   // --- 1. Bootstrap singletons ---
   Database *db = Database::getConn();
@@ -52,14 +52,16 @@ int main() {
 
   // --- 3. Setup Users ---
   std::vector<std::unique_ptr<NonVipUser>> users;
-  for (int i = 0; i < kNumUsers; i++) {
+  for (int i = 0; i < kNumUsers; i++)
+  {
     users.push_back(std::make_unique<NonVipUser>());
     db->registerUser(users.back().get());
   }
 
   // --- 4. Setup Products ---
   std::vector<std::unique_ptr<Product>> products;
-  for (int i = 0; i < kNumProducts; i++) {
+  for (int i = 0; i < kNumProducts; i++)
+  {
     products.push_back(
         std::make_unique<Product>("Product_" + std::to_string(i + 1)));
     db->registerProduct(products.back().get());
@@ -70,49 +72,55 @@ int main() {
 
   auto subscribe = [&](NonVipUser *u, Product *p,
                        std::vector<I_Notification_Method *> m,
-                       std::vector<std::string> m_names) {
+                       std::vector<std::string> m_names)
+  {
     SubInfo info;
     info.userId = u->getId();
     info.productName = p->getName();
     info.methods = m_names;
     setup_info.push_back(info);
 
-    for (auto method : m) {
+    for (auto method : m)
+    {
       db->subscribeUser(p, u, method);
     }
   };
 
-  // Distribute subscriptions using a deterministic but varied pattern
-  for (int p = 0; p < kNumProducts; p++) {
-    for (int u = 0; u < kNumUsers; u++) {
+  for (int p = 0; p < kNumProducts; p++)
+  {
+    for (int u = 0; u < kNumUsers; u++)
+    {
       std::vector<I_Notification_Method *> m;
       std::vector<std::string> m_names;
 
-      // Varied subscription logic
-      if ((p + u) % 2 == 0) {
+      if ((p + u) % 2 == 0)
+      {
         m.push_back(&email);
         m_names.push_back("Email");
       }
-      if ((p * u) % 3 == 0) {
+      if ((p * u) % 3 == 0)
+      {
         m.push_back(&message);
         m_names.push_back("Message");
       }
-      if ((p - u) % 4 == 0) {
+      if ((p - u) % 4 == 0)
+      {
         m.push_back(&whatsapp);
         m_names.push_back("Whatsapp");
       }
 
-      if (!m.empty()) {
+      if (!m.empty())
+      {
         subscribe(users[u].get(), products[p].get(), m, m_names);
       }
     }
   }
 
-  // --- 6. Print the Transparent Table Setup ---
+  // --- 6. Print Setup ---
   std::cout << "[Initialization Setup]\n";
   std::cout << "Users: " << kNumUsers << " | Products: " << kNumProducts
             << " | Message Queues: " << kMessageQueuePoolSize
-            << " | Dispatcher Threads: " << kNumDispatchers << "\n\n";
+            << " | Dispatchers per Queue: " << kNumDispatchersPerQueue << "\n\n";
 
   std::string separator(93, '=');
   std::cout << separator << "\n";
@@ -122,9 +130,11 @@ int main() {
             << " |\n";
   std::cout << separator << "\n";
 
-  for (const auto &info : setup_info) {
+  for (const auto &info : setup_info)
+  {
     std::string methods_str;
-    for (size_t i = 0; i < info.methods.size(); i++) {
+    for (size_t i = 0; i < info.methods.size(); i++)
+    {
       methods_str += info.methods[i];
       if (i < info.methods.size() - 1)
         methods_str += ", ";
@@ -136,49 +146,81 @@ int main() {
   }
   std::cout << separator << "\n\n";
 
-    // --- 7. Trigger processing (simulate restocks) ---
-    // We trigger restocks BEFORE starting workers to avoid a critical concurrency bug in Message_Queue.
-    // The component's pushNotification uses `size_mtx` while popReadyItem uses `mtx`, causing
-    // std::queue corruption when pushing and popping concurrently.
-    std::cout << "[Action] Triggering restock events for all products...\n";
-    for (int p = 0; p < kNumProducts; p++)
-    {
-        products[p]->updateCount((p + 1) * 10);
-    }
+  // --- 7. Start Dispatcher Workers ---
+  std::cout << "[Setup] Extracting Message_Queues from Queue_Allocator to "
+               "attach Dispatchers...\n";
+  std::set<Message_Queue *> unique_queues;
+  std::vector<Message_Queue *> queues_to_clean;
 
-    // --- 8. Start Dispatcher Workers ---
-    // Start multiple threads on the same queue to test concurrency safely.
-    // Since pushing is finished, multiple dispatchers pulling is safe (protected by `mtx`).
-    Message_Queue *queue = Queue_Allocator::allocate_queue();
-    std::vector<std::thread> workers;
-    for (int i = 0; i < kNumDispatchers; i++)
+  while (unique_queues.size() < kMessageQueuePoolSize)
+  {
+    Message_Queue *q = Queue_Allocator::allocate_queue();
+    if (unique_queues.find(q) == unique_queues.end())
     {
-        workers.emplace_back([queue]() {
-            Dispatcher dispatcher(queue);
-            dispatcher.pullNotification();
-        });
+      unique_queues.insert(q);
     }
-    for(auto& w : workers) {
-        w.detach();
+    else
+    {
+      // Dummy push to increase size so the Min-Heap yields the next queue
+      Notification *dummy = new Notification();
+      q->pushNotification(dummy);
+      queues_to_clean.push_back(q);
     }
-    std::cout << "[System] Dispatcher workers are now active and listening.\n\n";
+  }
 
-    // Allow time for all background processing to drain queues
-    std::this_thread::sleep_for(kDispatchWindow);
+  // Clean up dummies before starting threads
+  for (Message_Queue *q : queues_to_clean)
+  {
+    if (q->hasReadyItem())
+    {
+      RetryItem item = q->popReadyItem();
+      delete item.notification; // Free the local dummy
+    }
+  }
+
+  std::vector<std::thread> workers;
+  for (Message_Queue *q : unique_queues)
+  {
+    for (int i = 0; i < kNumDispatchersPerQueue; i++)
+    {
+      workers.emplace_back([q]()
+                           {
+        Dispatcher dispatcher(q);
+        dispatcher.pullNotification(); });
+    }
+  }
+  for (auto &w : workers)
+  {
+    w.detach();
+  }
+  std::cout << "[System] " << unique_queues.size()
+            << " Message_Queues active with "
+            << (unique_queues.size() * kNumDispatchersPerQueue)
+            << " total Dispatcher workers listening.\n\n";
+
+  // --- 8. Trigger processing (simulate restocks) CONCURRENTLY ---
+  std::cout << "[Action] Triggering restock events for all products "
+               "concurrently...\n";
+  for (int p = 0; p < kNumProducts; p++)
+  {
+    products[p]->updateCount((p + 1) * 10);
+  }
+
+  std::this_thread::sleep_for(kDispatchWindow);
 
   // --- 9. Users query states ---
   std::cout
       << "\n[Action] Users query final product availability (Pull Mechanism)\n";
   I_Product *p0 = products[0].get();
-  I_Product *p9 = products[9].get();
+  I_Product *pLast = products.back().get();
 
   std::cout << "User " << users[0]->getId() << " queries " << p0->getName()
             << ": ";
   users[0]->getStatus(p0);
 
-  std::cout << "User " << users[kNumUsers - 1]->getId() << " queries "
-            << p9->getName() << ": ";
-  users[kNumUsers - 1]->getStatus(p9);
+  std::cout << "User " << users.back()->getId() << " queries "
+            << pLast->getName() << ": ";
+  users.back()->getStatus(pLast);
 
   std::cout << "\n=== Simulation Complete ===\n";
   return 0;
