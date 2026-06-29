@@ -3,16 +3,18 @@
 #include "../interfaces/I_Product.hpp"
 #include "../interfaces/I_User.hpp"
 #include "../interfaces/I_Notification_Method.hpp"
+#include <mutex>
 #include <set>
 #include <unordered_map>
 
 class Database : public I_Database
 {
 private:
+    inline static std::mutex database_mutex;
     inline static Database *db = nullptr;
-    std::set<I_Product *> products;
-    std::set<I_User *> users;
-    std::unordered_map<I_Product *, std::unordered_map<I_User *, std::set<I_Notification_Method *>>> subscriptions;
+    inline static std::set<I_Product *> products;
+    inline static std::set<I_User *> users;
+    inline static std::unordered_map<I_Product *, std::unordered_map<I_User *, std::set<I_Notification_Method *>>> subscriptions;
 
     Database() = default;
 

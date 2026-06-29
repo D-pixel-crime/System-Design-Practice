@@ -1,40 +1,55 @@
 #pragma once
 #include "../interfaces/I_Notification_Method.hpp"
+#include "../interfaces/I_Product.hpp"
+#include "../interfaces/I_User.hpp"
 #include <iostream>
 #include <format>
+#include <syncstream>
 
 class Email_Notification_Method : public I_Notification_Method
 {
 public:
-    void processNotification(I_Product *_product, I_User *_user) const override
-    {
-        std::cout << std::format("Product({}): User-{} notified through Email!", _product->getName(), _user->getId()) << std::endl;
-    }
+  Email_Notification_Method() : I_Notification_Method("Email") {}
+
+  void processNotification(I_Product *_product, I_User *_user) const override
+  {
+    std::osyncstream(std::cout) << std::format("Product({}): User-{} notified through Email!\n",
+                                               _product->getName(), _user->getId());
+  }
 };
 
 class Message_Notification_Method : public I_Notification_Method
 {
 public:
-    void processNotification(I_Product *_product, I_User *_user) const override
-    {
-        std::cout << std::format("Product({}): User-{} notified through Message!", _product->getName(), _user->getId()) << std::endl;
-    }
+  Message_Notification_Method() : I_Notification_Method("Message") {}
+
+  void processNotification(I_Product *_product, I_User *_user) const override
+  {
+    std::osyncstream(std::cout) << std::format("Product({}): User-{} notified through Message!\n",
+                                               _product->getName(), _user->getId());
+  }
 };
 
 class Whatsapp_Notification_Method : public I_Notification_Method
 {
 public:
-    void processNotification(I_Product *_product, I_User *_user) const override
-    {
-        std::cout << std::format("Product({}): User-{} notified through Whatsapp!", _product->getName(), _user->getId()) << std::endl;
-    }
+  Whatsapp_Notification_Method() : I_Notification_Method("Whatsapp") {}
+
+  void processNotification(I_Product *_product, I_User *_user) const override
+  {
+    std::osyncstream(std::cout) << std::format("Product({}): User-{} notified through Whatsapp!\n",
+                                               _product->getName(), _user->getId());
+  }
 };
 
 class Call_Notification_Method : public I_Notification_Method
 {
 public:
-    void processNotification(I_Product *_product, I_User *_user) const override
-    {
-        std::cout << std::format("Product({}): User-{} notified through Call!", _product->getName(), _user->getId()) << std::endl;
-    }
+  Call_Notification_Method() : I_Notification_Method("Call") {}
+
+  void processNotification(I_Product *_product, I_User *_user) const override
+  {
+    std::osyncstream(std::cout) << std::format("Product({}): User-{} notified through Call!\n",
+                                               _product->getName(), _user->getId());
+  }
 };

@@ -6,7 +6,7 @@ class I_Product
 public:
     virtual ~I_Product() = default;
 
-    virtual void updateCount() = 0;
-    virtual int getAvailability() const = 0;
-    virtual std::string getName() const = 0;
+    virtual void updateCount(const int &_newCnt) = 0;
+    virtual const int &getAvailability() const = 0;
+    virtual const std::string &getName() const = 0;
 };

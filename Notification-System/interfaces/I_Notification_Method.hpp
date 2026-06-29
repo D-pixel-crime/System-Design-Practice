@@ -1,6 +1,8 @@
 #pragma once
-#include "I_User.hpp"
 #include <string>
+
+class I_Product;
+class I_User;
 
 class I_Notification_Method
 {

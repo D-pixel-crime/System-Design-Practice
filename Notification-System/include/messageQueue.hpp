@@ -27,7 +27,7 @@ public:
 
     Message_Queue(const int &_size);
 
-    const int &getCurrSize() const
+    const int getCurrSize() const
     {
         return push_queue.size();
     }

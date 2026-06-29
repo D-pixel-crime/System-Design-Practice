@@ -2,21 +2,23 @@
 #include "messageQueue.hpp"
 #include <queue>
 #include <vector>
+#include <mutex>
 
 class Queue_Allocator
 {
 private:
     struct Comp
     {
-        bool operator()(const Message_Queue *&a, const Message_Queue *&b)
+        bool operator()(Message_Queue *a, Message_Queue *b)
         {
-            return a->getCurrSize() < b->getCurrSize();
+            return a->getCurrSize() > b->getCurrSize();
         }
     };
 
+    inline static std::mutex allocator_mtx;
     inline static int total_queues = 0;
     inline static Queue_Allocator *queueAllocator = nullptr;
-    static std::priority_queue<Message_Queue *, std::vector<Message_Queue *>, Comp> queuePool;
+    inline static std::priority_queue<Message_Queue *, std::vector<Message_Queue *>, Comp> queuePool;
 
     Queue_Allocator(int _totalQueues, const int &_queueSize);
 

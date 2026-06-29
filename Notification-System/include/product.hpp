@@ -9,7 +9,9 @@ private:
     int cnt;
 
 public:
-    void updateCount() override;
-    int getAvailability() const override;
-    std::string getName() const override;
+    Product(const std::string &_name);
+
+    void updateCount(const int &_newCnt) override;
+    const int &getAvailability() const override;
+    const std::string &getName() const override;
 };

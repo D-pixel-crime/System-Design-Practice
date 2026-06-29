@@ -13,7 +13,7 @@ bool Message_Queue::hasReadyItem() const
     }
     if (!push_queue.empty())
     {
-        return;
+        return true;
     }
     return false;
 }
@@ -49,8 +49,8 @@ void Message_Queue::pushFailed(RetryItem _item)
         auto [product, user, method] = _item.notification->getNotificationDetails();
         std::cout << std::format("Notification Failed for Product({}): User({}) through {} Notification!", product->getName(), user->getId(), method->getName()) << std::endl;
 
-        _item.notification->update(nullptr, nullptr, nullptr);
         notifier->restoreNotification(_item.notification);
+
         return;
     }
 
@@ -74,9 +74,12 @@ RetryItem Message_Queue::popReadyItem()
     }
     else if (!push_queue.empty())
     {
-        ret = {push_queue.front(), std::chrono::steady_clock::time_point(), std::chrono::milliseconds(0)};
-        push_queue.pop();
+        {
+            std::unique_lock<std::mutex> lock(size_mtx);
 
+            ret = {push_queue.front(), std::chrono::steady_clock::time_point(), std::chrono::milliseconds(0)};
+            push_queue.pop();
+        }
         size_cv.notify_one();
     }
 

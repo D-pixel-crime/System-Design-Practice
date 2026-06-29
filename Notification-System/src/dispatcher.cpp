@@ -14,7 +14,8 @@ void Dispatcher::pullNotification()
         {
             std::unique_lock<std::mutex> lock(queue->mtx);
 
-            queue->cv.wait(lock, queue->hasReadyItem());
+            queue->cv.wait(lock, [this]()
+                           { return queue->hasReadyItem(); });
 
             item = queue->popReadyItem();
         }

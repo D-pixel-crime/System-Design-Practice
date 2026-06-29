@@ -13,7 +13,7 @@ Notifier::Notifier(int _totalNotifications)
     total_notifications = notificationPool.size();
 }
 
-Notifier *Notifier::getNotifier(const int &_totalNotifications = 0)
+Notifier *Notifier::getNotifier(const int &_totalNotifications)
 {
     {
         std::unique_lock<std::mutex> lock(notifier_mtx);
@@ -68,7 +68,7 @@ Notification *Notifier::getAvailableNotification()
     return currNotification;
 }
 
-void Notifier::notify(I_Product *_product, I_User *_user, I_Notification_Method *_notificationMethod = nullptr)
+void Notifier::notify(I_Product *_product, I_User *_user, I_Notification_Method *_notificationMethod)
 {
     if (!_product || !_user)
     {

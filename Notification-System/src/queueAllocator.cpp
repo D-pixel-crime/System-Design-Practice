@@ -27,6 +27,8 @@ Queue_Allocator *Queue_Allocator::createQueuePool(const int &_totalQueues, const
 
 Message_Queue *Queue_Allocator::allocate_queue()
 {
+    std::unique_lock<std::mutex> lock(allocator_mtx);
+
     auto f = queuePool.top();
     queuePool.pop();
     queuePool.push(f);

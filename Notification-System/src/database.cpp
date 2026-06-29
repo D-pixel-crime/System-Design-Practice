@@ -1,8 +1,6 @@
 #include "../include/database.hpp"
 #include <mutex>
 
-std::mutex database_mutex;
-
 Database *Database::getConn()
 {
     {
@@ -44,7 +42,7 @@ void Database::unsubscribeUser(I_Product *_product, I_User *_user, I_Notificatio
     subscriptions[_product][_user].erase(_notificationMethod);
 }
 
-const std::unordered_map<I_User *, std::set<I_Notification_Method *>> Database::getPreferences(I_Product *_product, I_User *_user = nullptr)
+const std::unordered_map<I_User *, std::set<I_Notification_Method *>> Database::getPreferences(I_Product *_product, I_User *_user)
 {
     if (!_product || !products.count(_product))
     {

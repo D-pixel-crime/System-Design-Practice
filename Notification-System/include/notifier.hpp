@@ -9,13 +9,13 @@
 class Notifier : public I_Notifier
 {
 private:
-    static std::mutex notifier_mtx;
-    std::mutex pool_mtx;
-    std::condition_variable pool_cv;
+    inline static std::mutex notifier_mtx;
+    inline static std::mutex pool_mtx;
+    inline static std::condition_variable pool_cv;
 
     inline static int total_notifications = 0;
     inline static Notifier *notifier = nullptr;
-    static std::vector<Notification *> notificationPool;
+    inline static std::vector<Notification *> notificationPool;
 
     Notifier() = delete;
     Notifier(int _totalNotifications);
